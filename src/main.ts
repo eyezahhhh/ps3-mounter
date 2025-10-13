@@ -1,4 +1,3 @@
-import { execSync } from "child_process";
 import * as DotEnv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -6,6 +5,7 @@ import Axios from "axios";
 import { Agent } from "https";
 import { ISunshineApps } from "./interface/sunshine/sunshine-apps.interface";
 import { ISunshineApp } from "./interface/sunshine/sunshine-app.interface";
+import { execSync, isMountPoint } from "./utils";
 
 DotEnv.config();
 
@@ -53,32 +53,24 @@ for (let dir of dirs) {
 			console.log(`Found ISO: "${iso}"`);
 
 			const mountPath = path.join(MOUNT_DIRECTORY, dir);
-			let exists = false;
 
 			if (fs.existsSync(mountPath)) {
-				const mountStat = fs.lstatSync(mountPath);
-				if (mountStat.isDirectory()) {
-					const contents = fs.readdirSync(mountPath);
-					if (contents.includes("PS3_GAME")) {
-						exists = true;
-					}
-				} else {
-					fs.rmSync(mountPath, {
-						force: true,
-						recursive: true,
-					});
+				if (isMountPoint(mountPath)) {
+					console.log("Is a mount point! removing...");
+					execSync(["umount", mountPath]);
 				}
-			}
-
-			if (!exists) {
-				fs.mkdirSync(mountPath, {
+				fs.rmSync(mountPath, {
+					force: true,
 					recursive: true,
 				});
-
-				console.log(`Mounting to: "${mountPath}"`);
-				const command = `fuseiso "${path.join(fullDir, iso)}" "${mountPath}"`;
-				execSync(command);
 			}
+
+			fs.mkdirSync(mountPath, {
+				recursive: true,
+			});
+
+			console.log(`Mounting to: "${mountPath}"`);
+			execSync(["fuseiso", path.join(fullDir, iso), mountPath]);
 
 			mounts.push(dir);
 			newApps.push({
@@ -97,10 +89,11 @@ for (let dir of dirs) {
 	}
 }
 
-for (let dir of dirs) {
+const mountDirs = fs.readdirSync(MOUNT_DIRECTORY);
+for (let dir of mountDirs) {
 	if (!mounts.includes(dir)) {
 		console.log("DELETING", dir);
-		fs.rmSync(dir, {
+		fs.rmSync(path.join(MOUNT_DIRECTORY, dir), {
 			force: true,
 			recursive: true,
 		});
