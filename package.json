@@ -1,12 +1,13 @@
 {
 	"name": "ps3-mounter",
-	"version": "1.0.0",
+	"version": "1.0.3",
 	"description": "",
 	"main": "index.js",
 	"scripts": {
 		"start": "node dist/main",
 		"dev": "nodemon -e ts -w src -x \"tsx src/main\"",
-		"build": "rimraf dist && tsc"
+		"build": "rimraf dist && tsc",
+		"quickstart": "tsx src/main"
 	},
 	"keywords": [],
 	"author": "",

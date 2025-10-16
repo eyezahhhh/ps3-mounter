@@ -5,12 +5,10 @@ import Axios from "axios";
 import { Agent } from "https";
 import { ISunshineApps } from "./interface/sunshine/sunshine-apps.interface";
 import { ISunshineApp } from "./interface/sunshine/sunshine-app.interface";
-import { execSync, isMountPoint } from "./utils";
 
 DotEnv.config();
 
-const ISO_DIRECTORY = process.env.ISO_DIRECTORY;
-const MOUNT_DIRECTORY = process.env.MOUNT_DIRECTORY;
+const GAME_DIRECTORY = process.env.GAME_DIRECTORY;
 const SUNSHINE_COMMAND = process.env.SUNSHINE_COMMAND;
 const SUNSHINE_ADDRESS = process.env.SUNSHINE_ADDRESS;
 const SUNSHINE_USERNAME = process.env.SUNSHINE_USERNAME;
@@ -27,76 +25,43 @@ function checkEnv(
 	console.log(`${name}: ${variable}`);
 }
 
-checkEnv(ISO_DIRECTORY, "ISO_DIRECTORY");
-checkEnv(MOUNT_DIRECTORY, "MOUNT_DIRECTORY");
+checkEnv(GAME_DIRECTORY, "GAME_DIRECTORY");
 checkEnv(SUNSHINE_COMMAND, "SUNSHINE_COMMAND");
 checkEnv(SUNSHINE_ADDRESS, "SUNSHINE_ADDRESS");
 checkEnv(SUNSHINE_USERNAME, "SUNSHINE_USERNAME");
 checkEnv(SUNSHINE_PASSWORD, "SUNSHINE_PASSWORD");
 
-const dirs = fs.readdirSync(ISO_DIRECTORY);
+const dirs = fs.readdirSync(GAME_DIRECTORY);
 
-const mounts: string[] = [];
 const newApps: ISunshineApp[] = [];
 for (let dir of dirs) {
-	const fullDir = path.join(ISO_DIRECTORY, dir);
+	const fullDir = path.join(GAME_DIRECTORY, dir);
 	const stat = fs.lstatSync(fullDir);
 	if (!stat.isDirectory()) {
 		console.log(`"${dir}" isn't a directory, skipping.`);
 	} else {
 		const contents = fs.readdirSync(fullDir);
 
-		const iso = contents.find((file) => file.toLowerCase().endsWith(".iso"));
-		if (!iso) {
-			console.log(`${dir} doesn't contain an ISO file, skipping.`);
-		} else {
-			console.log(`Found ISO: "${iso}"`);
+		if (contents.includes("PS3_GAME")) {
+			console.log("PS3 Game located:", dir);
 
-			const mountPath = path.join(MOUNT_DIRECTORY, dir);
-
-			if (fs.existsSync(mountPath)) {
-				if (isMountPoint(mountPath)) {
-					console.log("Is a mount point! removing...");
-					execSync(["umount", mountPath]);
-				}
-				fs.rmSync(mountPath, {
-					force: true,
-					recursive: true,
-				});
-			}
-
-			fs.mkdirSync(mountPath, {
-				recursive: true,
-			});
-
-			console.log(`Mounting to: "${mountPath}"`);
-			execSync(["fuseiso", path.join(fullDir, iso), mountPath]);
-
-			mounts.push(dir);
 			newApps.push({
 				name: dir,
-				cmd: SUNSHINE_COMMAND.split("{PS3_GAME_MOUNT}").join(mountPath),
+				cmd: SUNSHINE_COMMAND.split("{PS3_GAME_MOUNT}").join(fullDir),
 				index: -1,
-				"image-path": path.join(mountPath, "PS3_GAME", "ICON0.PNG"),
+				"image-path": path.join(fullDir, "PS3_GAME", "ICON0.PNG"),
 				"prep-cmd": [
 					{
 						do: 'sh -c "hyprctl keyword monitor DP-1,${SUNSHINE_CLIENT_WIDTH}x${SUNSHINE_CLIENT_HEIGHT}@${SUNSHINE_CLIENT_FPS},0x0,1"',
 						undo: 'sh -c "hyprctl keyword monitor DP-1,3440x1440@144,0x0,1"',
 					},
+					{
+						do: "",
+						undo: "pkill gamescope",
+					},
 				],
 			});
 		}
-	}
-}
-
-const mountDirs = fs.readdirSync(MOUNT_DIRECTORY);
-for (let dir of mountDirs) {
-	if (!mounts.includes(dir)) {
-		console.log("DELETING", dir);
-		fs.rmSync(path.join(MOUNT_DIRECTORY, dir), {
-			force: true,
-			recursive: true,
-		});
 	}
 }
 
