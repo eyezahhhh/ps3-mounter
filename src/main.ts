@@ -52,8 +52,8 @@ for (let dir of dirs) {
 				"image-path": path.join(fullDir, "PS3_GAME", "ICON0.PNG"),
 				"prep-cmd": [
 					{
-						do: 'sh -c "hyprctl keyword monitor DP-1,${SUNSHINE_CLIENT_WIDTH}x${SUNSHINE_CLIENT_HEIGHT}@${SUNSHINE_CLIENT_FPS},0x0,1"',
-						undo: 'sh -c "hyprctl keyword monitor DP-1,3440x1440@144,0x0,1"',
+						do: '/run/current-system/sw/bin/sh -c "hyprctl keyword monitor DP-1,${SUNSHINE_CLIENT_WIDTH}x${SUNSHINE_CLIENT_HEIGHT}@${SUNSHINE_CLIENT_FPS},0x0,1"',
+						undo: '/run/current-system/sw/bin/sh -c "hyprctl keyword monitor DP-1,3440x1440@144,0x0,1"',
 					},
 					{
 						do: "",
